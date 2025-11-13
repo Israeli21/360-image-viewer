@@ -40,10 +40,12 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [showMiniMap, setShowMiniMap] = useState(true);
+  const [showMiniMap, setShowMiniMap] = useState(false); // Disabled for now
   const [rotation, setRotation] = useState({ lon: 0, lat: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [mouseStart, setMouseStart] = useState({ x: 0, y: 0 });
+  
+  const rotationRef = useRef({ lon: 0, lat: 0 });
 
   // Generate viewpoint positions around the model
   const viewpoints = React.useMemo(() => {
@@ -63,7 +65,12 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     });
   }, [images360.length, modelCenter, cameraDistance]);
 
-  // Initialize panorama viewer
+  // Sync rotation state to ref for animation loop
+  useEffect(() => {
+    rotationRef.current = rotation;
+  }, [rotation]);
+
+  // Initialize panorama viewer with animation loop
   useEffect(() => {
     if (!panoramaContainerRef.current) return;
 
@@ -72,14 +79,14 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     scene.background = new THREE.Color(0x000000);
     panoramaSceneRef.current = scene;
 
-    // Setup camera
+    // Setup camera at origin looking forward
     const camera = new THREE.PerspectiveCamera(
       75,
       panoramaContainerRef.current.clientWidth / panoramaContainerRef.current.clientHeight,
       0.1,
       1000
     );
-    camera.position.set(0, 0, 0.1);
+    camera.position.set(0, 0, 0);
     panoramaCameraRef.current = camera;
 
     // Setup renderer
@@ -89,10 +96,14 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     panoramaContainerRef.current.appendChild(renderer.domElement);
     panoramaRendererRef.current = renderer;
 
-    // Create sphere for panorama (inverted to see inside)
+    // Create sphere for panorama - textured sphere using euclidean distance
+    // Scale negative on X to invert normals (view from inside)
     const geometry = new THREE.SphereGeometry(500, 60, 40);
-    geometry.scale(-1, 1, 1);
-    const material = new THREE.MeshBasicMaterial();
+    geometry.scale(-1, 1, 1); // Invert to see inside - matches tutorial approach
+    
+    const material = new THREE.MeshBasicMaterial({
+      // No side specified - default THREE.FrontSide works with inverted geometry
+    });
     const sphere = new THREE.Mesh(geometry, material);
     scene.add(sphere);
     panoramaSphereRef.current = sphere;
@@ -111,23 +122,26 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
 
     window.addEventListener('resize', handleResize);
 
-    // Animation loop
+    // Animation loop - runs continuously
     const animate = () => {
       requestRef.current = requestAnimationFrame(animate);
       
-      if (panoramaCameraRef.current && panoramaRendererRef.current && panoramaSceneRef.current) {
-        // Update camera rotation based on mouse interaction
-        const phi = THREE.MathUtils.degToRad(90 - rotation.lat);
-        const theta = THREE.MathUtils.degToRad(rotation.lon);
+      if (camera && renderer && scene) {
+        // Parametric spherical coordinates: convert lon/lat to 3D direction
+        // Using spherical coordinate system (r, theta, phi)
+        const phi = THREE.MathUtils.degToRad(90 - rotationRef.current.lat);   // Vertical angle (latitude)
+        const theta = THREE.MathUtils.degToRad(rotationRef.current.lon);       // Horizontal angle (longitude)
         
+        // Calculate look-at target using spherical to Cartesian conversion
+        const radius = 500;
         const target = new THREE.Vector3(
-          500 * Math.sin(phi) * Math.cos(theta),
-          500 * Math.cos(phi),
-          500 * Math.sin(phi) * Math.sin(theta)
+          radius * Math.sin(phi) * Math.cos(theta),
+          radius * Math.cos(phi),
+          radius * Math.sin(phi) * Math.sin(theta)
         );
         
-        panoramaCameraRef.current.lookAt(target);
-        panoramaRendererRef.current.render(panoramaSceneRef.current, panoramaCameraRef.current);
+        camera.lookAt(target);
+        renderer.render(scene, camera);
       }
 
       // Render mini map
@@ -135,6 +149,7 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
         miniMapRendererRef.current.render(miniMapSceneRef.current, miniMapCameraRef.current);
       }
     };
+    
     animate();
 
     // Cleanup
@@ -143,12 +158,12 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }
-      if (panoramaRendererRef.current && panoramaContainerRef.current) {
-        panoramaContainerRef.current.removeChild(panoramaRendererRef.current.domElement);
-        panoramaRendererRef.current.dispose();
+      if (renderer && panoramaContainerRef.current) {
+        panoramaContainerRef.current.removeChild(renderer.domElement);
+        renderer.dispose();
       }
     };
-  }, [rotation]);
+  }, []);
 
   // Initialize mini map
   useEffect(() => {
@@ -305,55 +320,66 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     onViewpointChange?.(newIndex);
   };
 
-  // Mouse controls
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Mouse controls for parametric view
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     setIsDragging(true);
     setMouseStart({ x: e.clientX, y: e.clientY });
-  };
+    console.log('Mouse down - start dragging at', e.clientX, e.clientY);
+  }, []);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
+    e.preventDefault();
 
     const deltaX = e.clientX - mouseStart.x;
     const deltaY = e.clientY - mouseStart.y;
 
-    setRotation(prev => ({
-      lon: prev.lon - deltaX * 0.2,
-      lat: Math.max(-85, Math.min(85, prev.lat - deltaY * 0.2))
-    }));
-
+    const newLon = rotationRef.current.lon - deltaX * 0.2;
+    const newLat = Math.max(-85, Math.min(85, rotationRef.current.lat - deltaY * 0.2));
+    
+    rotationRef.current = { lon: newLon, lat: newLat };
+    setRotation({ lon: newLon, lat: newLat });
+    
+    console.log('Rotation:', rotationRef.current);
     setMouseStart({ x: e.clientX, y: e.clientY });
-  };
+  }, [isDragging, mouseStart]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
+    if (isDragging) {
+      console.log('Mouse up - stop dragging');
+    }
     setIsDragging(false);
-  };
+  }, [isDragging]);
 
   // Touch support
-  const handleTouchStart = (e: React.TouchEvent) => {
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (e.touches.length === 1) {
+      e.preventDefault();
       setIsDragging(true);
       setMouseStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
     }
-  };
+  }, []);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging || e.touches.length !== 1) return;
+    e.preventDefault();
 
     const deltaX = e.touches[0].clientX - mouseStart.x;
     const deltaY = e.touches[0].clientY - mouseStart.y;
 
-    setRotation(prev => ({
-      lon: prev.lon - deltaX * 0.2,
-      lat: Math.max(-85, Math.min(85, prev.lat - deltaY * 0.2))
-    }));
+    const newLon = rotationRef.current.lon - deltaX * 0.2;
+    const newLat = Math.max(-85, Math.min(85, rotationRef.current.lat - deltaY * 0.2));
+    
+    rotationRef.current = { lon: newLon, lat: newLat };
+    setRotation({ lon: newLon, lat: newLat });
 
     setMouseStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
-  };
+  }, [isDragging, mouseStart]);
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
   return (
     <div className="w-full h-full flex flex-col bg-background">
@@ -385,7 +411,11 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
           <div
             ref={panoramaContainerRef}
             className="w-full h-full"
-            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+            style={{ 
+              cursor: isDragging ? 'grabbing' : 'grab',
+              userSelect: 'none',
+              touchAction: 'none'
+            }}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

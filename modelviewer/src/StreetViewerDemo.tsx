@@ -31,11 +31,18 @@ export const StreetViewerDemo: React.FC = () => {
         ];
 
         // Convert to absolute paths
+        // In Electron, we need to use the correct path format
         const imagePaths = imageFiles.map(file => 
           `${window.location.origin}/images/${file}`
         );
 
+        console.log('Window origin:', window.location.origin);
         console.log('Loading 360 images from:', imagePaths);
+        
+        // Test first image accessibility
+        fetch(imagePaths[0])
+          .then(res => console.log('First image accessible:', res.ok, res.status))
+          .catch(err => console.error('Cannot access first image:', err));
         setImages360(imagePaths);
         setIsLoading(false);
       } catch (error) {
