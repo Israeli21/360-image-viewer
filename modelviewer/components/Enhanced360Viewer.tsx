@@ -269,7 +269,7 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     );
   }, [glbPath]);
 
-  // Add viewpoint markers to mini-map
+  // Add viewpoint markers to mini-map (create once, don't recreate)
   useEffect(() => {
     if (!miniMapSceneRef.current || viewpoints.length === 0) return;
 
@@ -279,15 +279,13 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
 
     // Create a marker for each viewpoint
     viewpoints.forEach((viewpoint, index) => {
-      const isCurrentPosition = index === currentImageIndex;
-      
       console.log(`Marker ${index + 1}:`, viewpoint.position);
       
-      // Create sphere marker
-      const geometry = new THREE.SphereGeometry(2, 16, 16); // Made larger (was 0.5)
+      // Create sphere marker - always green initially
+      const geometry = new THREE.SphereGeometry(2, 16, 16);
       const material = new THREE.MeshBasicMaterial({ 
-        color: isCurrentPosition ? 0xff0000 : 0x00ff00,
-        opacity: isCurrentPosition ? 1.0 : 0.8,
+        color: 0x00ff00,
+        opacity: 0.8,
         transparent: true
       });
       const marker = new THREE.Mesh(geometry, material);
@@ -361,7 +359,24 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
         }
       });
     };
-  }, [viewpoints, currentImageIndex]);
+  }, [viewpoints]); // Only recreate when viewpoints change, not currentImageIndex
+
+  // Update marker colors when current position changes
+  useEffect(() => {
+    if (!miniMapSceneRef.current) return;
+
+    // Find all sphere markers and update their colors
+    miniMapSceneRef.current.children.forEach(child => {
+      if (child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry && child.userData.index !== undefined) {
+        const isCurrentPosition = child.userData.index === currentImageIndex;
+        if (child.material instanceof THREE.MeshBasicMaterial) {
+          child.material.color.setHex(isCurrentPosition ? 0xff0000 : 0x00ff00);
+          child.material.opacity = isCurrentPosition ? 1.0 : 0.8;
+          child.material.needsUpdate = true;
+        }
+      }
+    });
+  }, [currentImageIndex]);
 
   // Load current 360° image
   useEffect(() => {

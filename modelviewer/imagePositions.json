@@ -1,9 +1,37 @@
 {
-  "IMG_2955.JPG": { "x": 110, "z": 30, "name": "Position 1" },
-  "IMG_2956.JPG": { "x": 50, "z": 30, "name": "Position 2" },
-  "IMG_2957.JPG": { "x": 20, "z": 60, "name": "Position 3" },
-  "IMG_2958.JPG": { "x": 90, "z": 30, "name": "Position 4" },
-  "IMG_2959.JPG": { "x": 0, "z": 80, "name": "Position 5" },
-  "IMG_2960.JPG": { "x": 65, "z": 25, "name": "Position 6" },
-  "IMG_2961.JPG": { "x": 0, "z": 100, "name": "Position 7" }
+  "IMG_2955.JPG": {
+    "x": 110,
+    "z": 30,
+    "name": "Position 1"
+  },
+  "IMG_2956.JPG": {
+    "x": 50,
+    "z": 30,
+    "name": "Position 2"
+  },
+  "IMG_2957.JPG": {
+    "x": 20,
+    "z": 60,
+    "name": "Position 3"
+  },
+  "IMG_2958.JPG": {
+    "x": 90,
+    "z": 30,
+    "name": "Position 4"
+  },
+  "IMG_2959.JPG": {
+    "x": 0,
+    "z": 80,
+    "name": "Position 5"
+  },
+  "IMG_2960.JPG": {
+    "x": 65,
+    "z": 25,
+    "name": "Position 6"
+  },
+  "IMG_2961.JPG": {
+    "x": 0,
+    "z": 100,
+    "name": "Position 7"
+  }
 }
