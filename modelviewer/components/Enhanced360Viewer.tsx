@@ -361,22 +361,66 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     };
   }, [viewpoints]); // Only recreate when viewpoints change, not currentImageIndex
 
-  // Update marker colors when current position changes
+  // Update marker colors and draw path when current position changes
   useEffect(() => {
     if (!miniMapSceneRef.current) return;
 
+    const scene = miniMapSceneRef.current;
+
+    // Remove existing connection lines
+    const existingLines = scene.children.filter(
+      child => child.userData.isConnectionLine
+    );
+    existingLines.forEach(line => scene.remove(line));
+
     // Find all sphere markers and update their colors
-    miniMapSceneRef.current.children.forEach(child => {
+    scene.children.forEach(child => {
       if (child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry && child.userData.index !== undefined) {
         const isCurrentPosition = child.userData.index === currentImageIndex;
+        const isNextInPath = child.userData.index === currentImageIndex + 1;
+        const isPrevInPath = child.userData.index === currentImageIndex - 1;
+        
         if (child.material instanceof THREE.MeshBasicMaterial) {
-          child.material.color.setHex(isCurrentPosition ? 0xff0000 : 0x00ff00);
-          child.material.opacity = isCurrentPosition ? 1.0 : 0.8;
+          if (isCurrentPosition) {
+            child.material.color.setHex(0xff0000); // Red for current
+            child.material.opacity = 1.0;
+          } else if (isNextInPath || isPrevInPath) {
+            child.material.color.setHex(0xffff00); // Yellow for adjacent in path
+            child.material.opacity = 0.9;
+          } else {
+            child.material.color.setHex(0x00ff00); // Green for others
+            child.material.opacity = 0.6;
+          }
           child.material.needsUpdate = true;
         }
       }
     });
-  }, [currentImageIndex]);
+
+    // Draw the complete progressive path
+    if (viewpoints.length > 1) {
+      for (let i = 0; i < viewpoints.length - 1; i++) {
+        const pos1 = viewpoints[i].position;
+        const pos2 = viewpoints[i + 1].position;
+        
+        const points = [
+          new THREE.Vector3(pos1.x, 1, pos1.z),
+          new THREE.Vector3(pos2.x, 1, pos2.z)
+        ];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        // Highlight current segment in bright yellow, others in dim yellow
+        const isCurrentSegment = i === currentImageIndex || i === currentImageIndex - 1;
+        const material = new THREE.LineBasicMaterial({ 
+          color: isCurrentSegment ? 0xffff00 : 0x666600, 
+          linewidth: 2,
+          opacity: isCurrentSegment ? 1.0 : 0.4,
+          transparent: true
+        });
+        const line = new THREE.Line(geometry, material);
+        line.userData.isConnectionLine = true;
+        scene.add(line);
+      }
+    }
+  }, [currentImageIndex, viewpoints]);
 
   // Load current 360° image
   useEffect(() => {
@@ -431,7 +475,7 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     }
   }, [currentImageIndex, viewpoints]);
 
-  // Navigation
+  // Navigation - sequential path navigation (left goes backward, right goes forward)
   const handlePrev = () => {
     const newIndex = (currentImageIndex - 1 + images360.length) % images360.length;
     setCurrentImageIndex(newIndex);
@@ -589,20 +633,22 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
             onTouchEnd={handleTouchEnd}
           />
 
-          {/* Left Arrow */}
+          {/* Left Arrow - Previous in path */}
           <Button
             className="absolute left-4 top-1/2 transform -translate-y-1/2 h-20 w-12 rounded-full bg-background/80 hover:bg-background/90 backdrop-blur-sm shadow-lg"
             variant="ghost"
             onClick={handlePrev}
+            title="Go to previous position in path"
           >
             <ChevronLeft className="h-8 w-8" />
           </Button>
 
-          {/* Right Arrow */}
+          {/* Right Arrow - Next in path */}
           <Button
             className="absolute right-4 top-1/2 transform -translate-y-1/2 h-20 w-12 rounded-full bg-background/80 hover:bg-background/90 backdrop-blur-sm shadow-lg"
             variant="ghost"
             onClick={handleNext}
+            title="Go to next position in path"
           >
             <ChevronRight className="h-8 w-8" />
           </Button>
@@ -628,7 +674,7 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
 
           {/* Instructions */}
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-background/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs shadow-lg">
-            Drag to look around • Click arrows to navigate
+            Drag to look around • Follow the path from right to left
           </div>
         </div>
 
@@ -661,8 +707,14 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
                 </div>
                 <div className="bg-background/90 backdrop-blur-sm rounded px-2 py-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 opacity-70"></div>
-                    <span>Other Positions (click to navigate)</span>
+                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                    <span>Next/Previous in Path</span>
+                  </div>
+                </div>
+                <div className="bg-background/90 backdrop-blur-sm rounded px-2 py-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-0.5 bg-yellow-500"></div>
+                    <span>Progressive Path</span>
                   </div>
                 </div>
               </div>

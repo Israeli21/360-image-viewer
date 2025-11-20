@@ -27,15 +27,16 @@ export const StreetViewerDemo: React.FC = () => {
     const load360Images = async () => {
       try {
         setIsLoading(true);
-        // Get all image files from the images folder
+        // Image files in progressive path order: rightmost to left-bottom
+        // Path: (110,30) → (90,30) → (65,25) → (50,30) → (20,60) → (0,80) → (0,100)
         const imageFiles = [
-          'IMG_2955.JPG',
-          'IMG_2956.JPG',
-          'IMG_2957.JPG',
-          'IMG_2958.JPG',
-          'IMG_2959.JPG',
-          'IMG_2960.JPG',
-          'IMG_2961.JPG'
+          'IMG_2955.JPG',  // Position 1: (110, 30) - rightmost
+          'IMG_2958.JPG',  // Position 4: (90, 30)
+          'IMG_2960.JPG',  // Position 6: (65, 25)
+          'IMG_2956.JPG',  // Position 2: (50, 30)
+          'IMG_2957.JPG',  // Position 3: (20, 60)
+          'IMG_2959.JPG',  // Position 5: (0, 80)
+          'IMG_2961.JPG'   // Position 7: (0, 100) - left-bottom
         ];
 
         // Convert to absolute paths
