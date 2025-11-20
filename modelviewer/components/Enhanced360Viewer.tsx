@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, MapPin, Eye, EyeOff, Map as MapIcon } from '
 export interface Enhanced360ViewerProps {
   glbPath: string | null;
   images360: string[]; // Paths to 360° panoramic images
-  viewpoints?: Array<{ position: { x: number; y: number; z: number }; angle: number }>; // Position data for each image
+  viewpoints?: Array<{ position: { x: number; y: number; z: number }; angle: number; lat?: number }>; // Position data for each image with custom angles
   modelCenter?: { x: number; y: number; z: number };
   cameraDistance?: number;
   onViewpointChange?: (index: number) => void;
@@ -77,6 +77,19 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
   useEffect(() => {
     rotationRef.current = rotation;
   }, [rotation]);
+
+  // Set initial rotation to look at building when image loads
+  useEffect(() => {
+    if (viewpoints.length === 0) return;
+    
+    const currentViewpoint = viewpoints[currentImageIndex];
+    // Use custom angle if provided, otherwise calculate from position
+    const lon = currentViewpoint.angle;
+    const lat = currentViewpoint.lat || 0;
+    
+    setRotation({ lon, lat });
+    rotationRef.current = { lon, lat };
+  }, [currentImageIndex, viewpoints]);
 
   // Initialize panorama viewer with animation loop
   useEffect(() => {
@@ -361,7 +374,7 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     };
   }, [viewpoints]); // Only recreate when viewpoints change, not currentImageIndex
 
-  // Update marker colors and draw path when current position changes
+  // Update marker colors when current position changes
   useEffect(() => {
     if (!miniMapSceneRef.current) return;
 
@@ -377,16 +390,11 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     scene.children.forEach(child => {
       if (child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry && child.userData.index !== undefined) {
         const isCurrentPosition = child.userData.index === currentImageIndex;
-        const isNextInPath = child.userData.index === currentImageIndex + 1;
-        const isPrevInPath = child.userData.index === currentImageIndex - 1;
         
         if (child.material instanceof THREE.MeshBasicMaterial) {
           if (isCurrentPosition) {
             child.material.color.setHex(0xff0000); // Red for current
             child.material.opacity = 1.0;
-          } else if (isNextInPath || isPrevInPath) {
-            child.material.color.setHex(0xffff00); // Yellow for adjacent in path
-            child.material.opacity = 0.9;
           } else {
             child.material.color.setHex(0x00ff00); // Green for others
             child.material.opacity = 0.6;
@@ -395,31 +403,6 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
         }
       }
     });
-
-    // Draw the complete progressive path
-    if (viewpoints.length > 1) {
-      for (let i = 0; i < viewpoints.length - 1; i++) {
-        const pos1 = viewpoints[i].position;
-        const pos2 = viewpoints[i + 1].position;
-        
-        const points = [
-          new THREE.Vector3(pos1.x, 1, pos1.z),
-          new THREE.Vector3(pos2.x, 1, pos2.z)
-        ];
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        // Highlight current segment in bright yellow, others in dim yellow
-        const isCurrentSegment = i === currentImageIndex || i === currentImageIndex - 1;
-        const material = new THREE.LineBasicMaterial({ 
-          color: isCurrentSegment ? 0xffff00 : 0x666600, 
-          linewidth: 2,
-          opacity: isCurrentSegment ? 1.0 : 0.4,
-          transparent: true
-        });
-        const line = new THREE.Line(geometry, material);
-        line.userData.isConnectionLine = true;
-        scene.add(line);
-      }
-    }
   }, [currentImageIndex, viewpoints]);
 
   // Load current 360° image
@@ -475,18 +458,26 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     }
   }, [currentImageIndex, viewpoints]);
 
-  // Navigation - sequential path navigation (left goes backward, right goes forward)
+  // Navigation - sequential path navigation (reversed: left goes forward, right goes backward)
   const handlePrev = () => {
-    const newIndex = (currentImageIndex - 1 + images360.length) % images360.length;
+    const newIndex = (currentImageIndex + 1) % images360.length;
     setCurrentImageIndex(newIndex);
-    setRotation({ lon: 0, lat: 0 }); // Reset view
+    // Use custom angle from viewpoint
+    const newViewpoint = viewpoints[newIndex];
+    const lon = newViewpoint.angle;
+    const lat = newViewpoint.lat || 0;
+    setRotation({ lon, lat });
     onViewpointChange?.(newIndex);
   };
 
   const handleNext = () => {
-    const newIndex = (currentImageIndex + 1) % images360.length;
+    const newIndex = (currentImageIndex - 1 + images360.length) % images360.length;
     setCurrentImageIndex(newIndex);
-    setRotation({ lon: 0, lat: 0 }); // Reset view
+    // Use custom angle from viewpoint
+    const newViewpoint = viewpoints[newIndex];
+    const lon = newViewpoint.angle;
+    const lat = newViewpoint.lat || 0;
+    setRotation({ lon, lat });
     onViewpointChange?.(newIndex);
   };
 
@@ -582,12 +573,16 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
       if (index !== undefined && index !== currentImageIndex) {
         console.log('Navigating to position:', index);
         setCurrentImageIndex(index);
-        setRotation({ lon: 0, lat: 0 });
-        rotationRef.current = { lon: 0, lat: 0 };
+        // Use custom angle from viewpoint
+        const clickedViewpoint = viewpoints[index];
+        const lon = clickedViewpoint.angle;
+        const lat = clickedViewpoint.lat || 0;
+        setRotation({ lon, lat });
+        rotationRef.current = { lon, lat };
         onViewpointChange?.(index);
       }
     }
-  }, [currentImageIndex, onViewpointChange]);
+  }, [currentImageIndex, onViewpointChange, viewpoints]);
 
   return (
     <div className="w-full h-full flex flex-col bg-background">
@@ -653,28 +648,24 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
             <ChevronRight className="h-8 w-8" />
           </Button>
 
-          {/* Position indicator */}
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1 bg-background/90 backdrop-blur-sm p-2 rounded-lg border shadow-lg">
-            {images360.map((_, index) => (
-              <Button
-                key={index}
-                size="sm"
-                variant={index === currentImageIndex ? 'default' : 'ghost'}
-                onClick={() => {
-                  setCurrentImageIndex(index);
-                  setRotation({ lon: 0, lat: 0 });
-                  onViewpointChange?.(index);
-                }}
-                className="w-8 h-8 p-0"
-              >
-                {index + 1}
-              </Button>
-            ))}
-          </div>
-
           {/* Instructions */}
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-background/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs shadow-lg">
             Drag to look around • Follow the path from right to left
+          </div>
+
+          {/* Camera orientation display */}
+          <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm p-3 rounded-lg shadow-lg border">
+            <div className="text-xs font-semibold mb-2">Camera Orientation</div>
+            <div className="space-y-1 text-xs">
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Horizontal:</span>
+                <span className="font-mono">{rotation.lon.toFixed(1)}°</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Vertical:</span>
+                <span className="font-mono">{rotation.lat.toFixed(1)}°</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -707,14 +698,8 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
                 </div>
                 <div className="bg-background/90 backdrop-blur-sm rounded px-2 py-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                    <span>Next/Previous in Path</span>
-                  </div>
-                </div>
-                <div className="bg-background/90 backdrop-blur-sm rounded px-2 py-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-0.5 bg-yellow-500"></div>
-                    <span>Progressive Path</span>
+                    <div className="w-2 h-2 rounded-full bg-green-500 opacity-70"></div>
+                    <span>Other Positions</span>
                   </div>
                 </div>
               </div>

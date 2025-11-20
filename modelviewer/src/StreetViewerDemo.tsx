@@ -29,6 +29,7 @@ export const StreetViewerDemo: React.FC = () => {
         setIsLoading(true);
         // Image files in progressive path order: rightmost to left-bottom
         // Path: (110,30) → (90,30) → (65,25) → (50,30) → (20,60) → (0,80) → (0,100)
+        // With custom camera angles to focus on the building
         const imageFiles = [
           'IMG_2955.JPG',  // Position 1: (110, 30) - rightmost
           'IMG_2958.JPG',  // Position 4: (90, 30)
@@ -37,6 +38,17 @@ export const StreetViewerDemo: React.FC = () => {
           'IMG_2957.JPG',  // Position 3: (20, 60)
           'IMG_2959.JPG',  // Position 5: (0, 80)
           'IMG_2961.JPG'   // Position 7: (0, 100) - left-bottom
+        ];
+
+        // Custom camera angles for each position to face the building
+        const cameraAngles = [
+          { lon: -184.3, lat: 8.8 },   // Camera 1
+          { lon: -166.2, lat: 13.4 },   // Camera 4
+          { lon: -154.4, lat: 10.6 },  // Camera 6
+          { lon: -174.8, lat: 1.2 },  // Camera 2
+          { lon: -200.0, lat: 4.8 },  // Camera 3
+          { lon: -204.8, lat: 12.8 },   // Camera 5
+          { lon: -185.4, lat: 15.2 }   // Camera 7
         ];
 
         // Convert to absolute paths
@@ -57,11 +69,12 @@ export const StreetViewerDemo: React.FC = () => {
 
         // Load viewpoints from positions file
         const positions: Record<string, ImagePosition> = imagePositions as any;
-        const viewpointData = imageFiles.map(fileName => {
+        const viewpointData = imageFiles.map((fileName, index) => {
           const pos = positions[fileName];
           return {
             position: { x: pos.x, y: 0, z: pos.z },
-            angle: 0 // Default angle, can be adjusted
+            angle: cameraAngles[index].lon, // Custom horizontal angle
+            lat: cameraAngles[index].lat    // Custom vertical angle
           };
         });
         
