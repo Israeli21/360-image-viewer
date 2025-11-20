@@ -3,6 +3,7 @@ import { Enhanced360Viewer } from '../components/Enhanced360Viewer';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Compass } from 'lucide-react';
+import imagePositions from '../imagePositions.json';
 
 /**
  * 360° Image Viewer Demo
@@ -10,9 +11,16 @@ import { Compass } from 'lucide-react';
  * Simple viewer for navigating through 360° panoramic images
  */
 
+interface ImagePosition {
+  x: number;
+  z: number;
+  name: string;
+}
+
 export const StreetViewerDemo: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [images360, setImages360] = useState<string[]>([]);
+  const [viewpoints, setViewpoints] = useState<Array<{ position: { x: number; y: number; z: number }; angle: number }>>([]);
 
   // Auto-load 360° images from the images folder on mount
   useEffect(() => {
@@ -43,7 +51,22 @@ export const StreetViewerDemo: React.FC = () => {
         fetch(imagePaths[0])
           .then(res => console.log('First image accessible:', res.ok, res.status))
           .catch(err => console.error('Cannot access first image:', err));
+
         setImages360(imagePaths);
+
+        // Load viewpoints from positions file
+        const positions: Record<string, ImagePosition> = imagePositions as any;
+        const viewpointData = imageFiles.map(fileName => {
+          const pos = positions[fileName];
+          return {
+            position: { x: pos.x, y: 0, z: pos.z },
+            angle: 0 // Default angle, can be adjusted
+          };
+        });
+        
+        setViewpoints(viewpointData);
+        console.log('Loaded viewpoints:', viewpointData);
+        
         setIsLoading(false);
       } catch (error) {
         console.error('Error loading 360 images:', error);
@@ -90,6 +113,7 @@ export const StreetViewerDemo: React.FC = () => {
             <Enhanced360Viewer
               glbPath={null}
               images360={images360}
+              viewpoints={viewpoints}
               modelCenter={{ x: 0, y: 0, z: 0 }}
               cameraDistance={5}
             />

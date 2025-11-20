@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, MapPin, Eye, EyeOff, Map as MapIcon } from '
 export interface Enhanced360ViewerProps {
   glbPath: string | null;
   images360: string[]; // Paths to 360° panoramic images
+  viewpoints?: Array<{ position: { x: number; y: number; z: number }; angle: number }>; // Position data for each image
   modelCenter?: { x: number; y: number; z: number };
   cameraDistance?: number;
   onViewpointChange?: (index: number) => void;
@@ -17,6 +18,7 @@ export interface Enhanced360ViewerProps {
 export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
   glbPath,
   images360,
+  viewpoints: providedViewpoints = [],
   modelCenter = { x: 0, y: 0, z: 0 },
   cameraDistance = 5,
   onViewpointChange
@@ -40,15 +42,21 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [showMiniMap, setShowMiniMap] = useState(false); // Disabled for now
+  const [showMiniMap, setShowMiniMap] = useState(true); // Show mini-map with positions
   const [rotation, setRotation] = useState({ lon: 0, lat: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [mouseStart, setMouseStart] = useState({ x: 0, y: 0 });
   
   const rotationRef = useRef({ lon: 0, lat: 0 });
 
-  // Generate viewpoint positions around the model
+  // Use provided viewpoints or generate default positions around the model
   const viewpoints = React.useMemo(() => {
+    // If viewpoints are provided, use them
+    if (providedViewpoints.length > 0) {
+      return providedViewpoints;
+    }
+    
+    // Otherwise, generate default circular positions
     const numImages = images360.length;
     return images360.map((_, index) => {
       const angle = (index / numImages) * 360;
@@ -63,7 +71,7 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
         angle
       };
     });
-  }, [images360.length, modelCenter, cameraDistance]);
+  }, [providedViewpoints, images360.length, modelCenter, cameraDistance]);
 
   // Sync rotation state to ref for animation loop
   useEffect(() => {
@@ -204,7 +212,16 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     directionalLight.position.set(0, 10, 0);
     scene.add(directionalLight);
 
-    // Add position marker
+    // Add grid helper for reference - larger to accommodate your coordinate range
+    const gridHelper = new THREE.GridHelper(250, 25, 0x444444, 0x222222);
+    gridHelper.position.y = 0;
+    scene.add(gridHelper);
+
+    // Add axes helper for debugging - larger to see coordinates
+    const axesHelper = new THREE.AxesHelper(80);
+    scene.add(axesHelper);
+
+    // Add position marker (red cone pointing down)
     const markerGeometry = new THREE.ConeGeometry(0.3, 0.6, 8);
     const markerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const marker = new THREE.Mesh(markerGeometry, markerMaterial);
@@ -251,6 +268,100 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
       }
     );
   }, [glbPath]);
+
+  // Add viewpoint markers to mini-map
+  useEffect(() => {
+    if (!miniMapSceneRef.current || viewpoints.length === 0) return;
+
+    console.log('Creating mini-map markers for viewpoints:', viewpoints);
+    const scene = miniMapSceneRef.current;
+    const markers: THREE.Mesh[] = [];
+
+    // Create a marker for each viewpoint
+    viewpoints.forEach((viewpoint, index) => {
+      const isCurrentPosition = index === currentImageIndex;
+      
+      console.log(`Marker ${index + 1}:`, viewpoint.position);
+      
+      // Create sphere marker
+      const geometry = new THREE.SphereGeometry(2, 16, 16); // Made larger (was 0.5)
+      const material = new THREE.MeshBasicMaterial({ 
+        color: isCurrentPosition ? 0xff0000 : 0x00ff00,
+        opacity: isCurrentPosition ? 1.0 : 0.8,
+        transparent: true
+      });
+      const marker = new THREE.Mesh(geometry, material);
+      
+      // Position marker - use X and Z from viewpoint
+      marker.position.set(
+        viewpoint.position.x,
+        2, // Height above ground
+        viewpoint.position.z
+      );
+      
+      // Add label (position number)
+      marker.userData = { index, viewpoint };
+      
+      scene.add(marker);
+      markers.push(marker);
+    });
+
+    // Adjust camera to fit all viewpoints
+    if (viewpoints.length > 0) {
+      const positions = viewpoints.map(v => v.position);
+      const minX = Math.min(...positions.map(p => p.x));
+      const maxX = Math.max(...positions.map(p => p.x));
+      const minZ = Math.min(...positions.map(p => p.z));
+      const maxZ = Math.max(...positions.map(p => p.z));
+      
+      console.log('Viewpoint bounds:', { minX, maxX, minZ, maxZ });
+      
+      const centerX = (minX + maxX) / 2;
+      const centerZ = (minZ + maxZ) / 2;
+      const rangeX = maxX - minX;
+      const rangeZ = maxZ - minZ;
+      const maxRange = Math.max(rangeX, rangeZ, 40); // Increased minimum from 20 to 40
+      
+      console.log('Camera setup:', { centerX, centerZ, rangeX, rangeZ, maxRange });
+      
+      if (miniMapCameraRef.current && miniMapContainerRef.current) {
+        const camera = miniMapCameraRef.current as THREE.OrthographicCamera;
+        const containerWidth = miniMapContainerRef.current.clientWidth;
+        const containerHeight = miniMapContainerRef.current.clientHeight;
+        const aspect = containerWidth / containerHeight;
+        
+        // Add 50% padding to ensure all points are visible
+        const frustumSize = maxRange * 1.5;
+        
+        camera.left = -frustumSize * aspect / 2;
+        camera.right = frustumSize * aspect / 2;
+        camera.top = frustumSize / 2;
+        camera.bottom = -frustumSize / 2;
+        camera.position.set(centerX, 100, centerZ);
+        camera.lookAt(centerX, 0, centerZ);
+        camera.updateProjectionMatrix();
+        
+        console.log('Camera frustum:', { 
+          left: camera.left, 
+          right: camera.right, 
+          top: camera.top, 
+          bottom: camera.bottom,
+          position: camera.position
+        });
+      }
+    }
+
+    // Cleanup
+    return () => {
+      markers.forEach(marker => {
+        scene.remove(marker);
+        marker.geometry.dispose();
+        if (marker.material instanceof THREE.Material) {
+          marker.material.dispose();
+        }
+      });
+    };
+  }, [viewpoints, currentImageIndex]);
 
   // Load current 360° image
   useEffect(() => {
@@ -381,6 +492,44 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     setIsDragging(false);
   }, []);
 
+  // Handle mini-map click to navigate to position
+  const handleMiniMapClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!miniMapContainerRef.current || !miniMapCameraRef.current || !miniMapSceneRef.current) return;
+
+    const rect = miniMapContainerRef.current.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    console.log('Mini-map clicked at:', { x, y, clientX: event.clientX, clientY: event.clientY });
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(x, y), miniMapCameraRef.current);
+
+    // Find all sphere markers
+    const markers = miniMapSceneRef.current.children.filter(
+      child => child instanceof THREE.Mesh && child.geometry instanceof THREE.SphereGeometry
+    );
+
+    console.log('Checking', markers.length, 'markers for intersection');
+
+    const intersects = raycaster.intersectObjects(markers);
+    
+    console.log('Intersections found:', intersects.length);
+    
+    if (intersects.length > 0) {
+      const clickedMarker = intersects[0].object;
+      const index = clickedMarker.userData.index;
+      console.log('Clicked marker index:', index);
+      if (index !== undefined && index !== currentImageIndex) {
+        console.log('Navigating to position:', index);
+        setCurrentImageIndex(index);
+        setRotation({ lon: 0, lat: 0 });
+        rotationRef.current = { lon: 0, lat: 0 };
+        onViewpointChange?.(index);
+      }
+    }
+  }, [currentImageIndex, onViewpointChange]);
+
   return (
     <div className="w-full h-full flex flex-col bg-background">
       {/* Header */}
@@ -481,7 +630,27 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
               </p>
             </div>
             <div className="flex-1 relative bg-muted/20">
-              <div ref={miniMapContainerRef} className="w-full h-full" />
+              <div 
+                ref={miniMapContainerRef} 
+                className="w-full h-full cursor-pointer"
+                onClick={handleMiniMapClick}
+                title="Click on a marker to jump to that position"
+              />
+              {/* Position labels overlay */}
+              <div className="absolute bottom-2 left-2 right-2 text-xs space-y-1">
+                <div className="bg-background/90 backdrop-blur-sm rounded px-2 py-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                    <span>Current Position</span>
+                  </div>
+                </div>
+                <div className="bg-background/90 backdrop-blur-sm rounded px-2 py-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500 opacity-70"></div>
+                    <span>Other Positions (click to navigate)</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </Card>
         )}
