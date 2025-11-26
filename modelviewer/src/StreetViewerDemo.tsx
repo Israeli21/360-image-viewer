@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Enhanced360Viewer } from '../components/Enhanced360Viewer';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Compass } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Compass, Eye, EyeOff } from 'lucide-react';
 import imagePositions from '../imagePositions.json';
 
 /**
@@ -21,6 +22,7 @@ export const StreetViewerDemo: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [images360, setImages360] = useState<string[]>([]);
   const [viewpoints, setViewpoints] = useState<Array<{ position: { x: number; y: number; z: number }; angle: number }>>([]);
+  const [hideUI, setHideUI] = useState(false);
 
   // Auto-load 360° images from the images folder on mount
   useEffect(() => {
@@ -110,6 +112,17 @@ export const StreetViewerDemo: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Hide UI Toggle Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setHideUI(!hideUI)}
+            className="gap-2"
+          >
+            {hideUI ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            {hideUI ? 'Show UI' : 'Hide UI'}
+          </Button>
+          
           {/* Stats */}
           {images360.length > 0 && (
             <Badge variant="outline">
@@ -130,6 +143,7 @@ export const StreetViewerDemo: React.FC = () => {
               viewpoints={viewpoints}
               modelCenter={{ x: 0, y: 0, z: 0 }}
               cameraDistance={5}
+              hideUI={hideUI}
             />
           ) : (
             <Card className="w-full h-full flex items-center justify-center">

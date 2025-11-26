@@ -13,6 +13,7 @@ export interface Enhanced360ViewerProps {
   modelCenter?: { x: number; y: number; z: number };
   cameraDistance?: number;
   onViewpointChange?: (index: number) => void;
+  hideUI?: boolean; // Hide all UI elements (arrows, text, coordinates)
 }
 
 export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
@@ -21,7 +22,8 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
   viewpoints: providedViewpoints = [],
   modelCenter = { x: 0, y: 0, z: 0 },
   cameraDistance = 5,
-  onViewpointChange
+  onViewpointChange,
+  hideUI = false
 }) => {
   // Panorama viewer refs
   const panoramaContainerRef = useRef<HTMLDivElement>(null);
@@ -629,44 +631,52 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
           />
 
           {/* Left Arrow - Previous in path */}
-          <Button
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 h-20 w-12 rounded-full bg-background/80 hover:bg-background/90 backdrop-blur-sm shadow-lg"
-            variant="ghost"
-            onClick={handlePrev}
-            title="Go to previous position in path"
-          >
-            <ChevronLeft className="h-8 w-8" />
-          </Button>
+          {!hideUI && (
+            <Button
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 h-20 w-12 rounded-full bg-background/80 hover:bg-background/90 backdrop-blur-sm shadow-lg"
+              variant="ghost"
+              onClick={handlePrev}
+              title="Go to previous position in path"
+            >
+              <ChevronLeft className="h-8 w-8" />
+            </Button>
+          )}
 
           {/* Right Arrow - Next in path */}
-          <Button
-            className="absolute right-4 top-1/2 transform -translate-y-1/2 h-20 w-12 rounded-full bg-background/80 hover:bg-background/90 backdrop-blur-sm shadow-lg"
-            variant="ghost"
-            onClick={handleNext}
-            title="Go to next position in path"
-          >
-            <ChevronRight className="h-8 w-8" />
-          </Button>
+          {!hideUI && (
+            <Button
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 h-20 w-12 rounded-full bg-background/80 hover:bg-background/90 backdrop-blur-sm shadow-lg"
+              variant="ghost"
+              onClick={handleNext}
+              title="Go to next position in path"
+            >
+              <ChevronRight className="h-8 w-8" />
+            </Button>
+          )}
 
           {/* Instructions */}
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-background/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs shadow-lg">
-            Drag to look around • Follow the path from right to left
-          </div>
+          {!hideUI && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-background/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs shadow-lg">
+              Drag to look around • Follow the path from right to left
+            </div>
+          )}
 
           {/* Camera orientation display */}
-          <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm p-3 rounded-lg shadow-lg border">
-            <div className="text-xs font-semibold mb-2">Camera Orientation</div>
-            <div className="space-y-1 text-xs">
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Horizontal:</span>
-                <span className="font-mono">{rotation.lon.toFixed(1)}°</span>
-              </div>
-              <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Vertical:</span>
-                <span className="font-mono">{rotation.lat.toFixed(1)}°</span>
+          {!hideUI && (
+            <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm p-3 rounded-lg shadow-lg border">
+              <div className="text-xs font-semibold mb-2">Camera Orientation</div>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Horizontal:</span>
+                  <span className="font-mono">{rotation.lon.toFixed(1)}°</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-muted-foreground">Vertical:</span>
+                  <span className="font-mono">{rotation.lat.toFixed(1)}°</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Mini Map */}
