@@ -340,6 +340,18 @@ ipcMain.handle('fs:readSceneGraph', async (_event, sceneGraphPath: string): Prom
   }
 });
 
+// Read and parse camera poses JSON file for point cloud viewer
+ipcMain.handle('fs:readCameraPoses', async (_event, cameraPosesPath: string): Promise<any | null> => {
+  try {
+    const fileContent = await fs.promises.readFile(cameraPosesPath, 'utf-8');
+    const cameraPoses = JSON.parse(fileContent);
+    return cameraPoses;
+  } catch (error) {
+    console.error('Error reading camera poses file:', error);
+    return null;
+  }
+});
+
 // Get image file paths from scene folder's images directory
 ipcMain.handle('fs:getSceneImages', async (_event, scenePath: string): Promise<string[] | null> => {
   try {

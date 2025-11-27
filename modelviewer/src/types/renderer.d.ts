@@ -71,6 +71,7 @@ interface ElectronAPI {
   getSceneImages: (scenePath: string) => Promise<string[] | null>;
   getSceneGraphPath: (scenePath: string) => Promise<string | null>;
   readSceneGraph: (sceneGraphPath: string) => Promise<SceneGraph | null>;
+  readCameraPoses: (cameraPosesPath: string) => Promise<any | null>;
   sendChatMessage: (message: string, endpoint?: string) => Promise<ChatResponse>;
 }
 

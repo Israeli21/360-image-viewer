@@ -65,6 +65,10 @@ contextBridge.exposeInMainWorld('electron', {
   readSceneGraph: (sceneGraphPath: string): Promise<any | null> =>
     ipcRenderer.invoke('fs:readSceneGraph', sceneGraphPath),
 
+  // Camera poses for point cloud viewer
+  readCameraPoses: (cameraPosesPath: string): Promise<any | null> =>
+    ipcRenderer.invoke('fs:readCameraPoses', cameraPosesPath),
+
   // Chat API
   sendChatMessage: (message: string, endpoint?: string): Promise<any> =>
     ipcRenderer.invoke('chat:sendMessage', message, endpoint),

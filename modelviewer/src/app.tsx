@@ -9,9 +9,10 @@ import { ImageGallery } from "@/components/ImageGallery"
 import { SceneGraphViewer } from "@/components/SceneGraphViewer"
 import { ChatInterface, type ViewerCommand } from "@/components/ChatInterface"
 import { StreetViewerDemo } from "@/src/StreetViewerDemo"
+import { PointCloudDemo } from "@/components/PointCloudDemo"
 import { ViewerProvider } from "@/src/contexts/ViewerContext"
 import type { GLBViewerControls, SceneGraphViewerControls } from "@/src/contexts/ViewerContext"
-import { FolderOpen, Box, Map } from 'lucide-react'
+import { FolderOpen, Box, Map, Camera } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -36,7 +37,7 @@ function App() {
   const [glbPath, setGlbPath] = useState<string | null>(null);
   const [qaPairsPath, setQaPairsPath] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<'sceneGraph' | '3dModel'>('3dModel');
-  const [viewMode, setViewMode] = useState<'scene' | 'glb-only' | 'street-viewer'>('scene');
+  const [viewMode, setViewMode] = useState<'scene' | 'glb-only' | 'street-viewer' | 'point-cloud'>('scene');
   const [glbOnlyPath, setGlbOnlyPath] = useState<string | null>(null);
 
   // Refs for viewer controls
@@ -125,6 +126,10 @@ function App() {
 
   const handleOpenStreetViewer = () => {
     setViewMode('street-viewer');
+  };
+
+  const handleOpenPointCloud = () => {
+    setViewMode('point-cloud');
   };
 
   const handleFileSelect = (path: string) => {
@@ -227,6 +232,10 @@ function App() {
                 <Map className="size-sidebar-icon" />
                 <span className="sr-only">Street Viewer</span>
               </Button>
+              <Button onClick={handleOpenPointCloud} variant="ghost" size="icon" className="size-sidebar-icon hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                <Camera className="size-sidebar-icon" />
+                <span className="sr-only">Point Cloud</span>
+              </Button>
             </>
           }
         >
@@ -247,7 +256,10 @@ function App() {
         {/* Main Viewer Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1">
-            {viewMode === 'street-viewer' ? (
+            {viewMode === 'point-cloud' ? (
+              // Point Cloud mode: Full-screen 3D camera reconstruction viewer
+              <PointCloudDemo />
+            ) : viewMode === 'street-viewer' ? (
               // Street Viewer mode: Full-screen panoramic viewer
               <StreetViewerDemo />
             ) : viewMode === 'glb-only' ? (
