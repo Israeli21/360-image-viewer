@@ -27,3 +27,13 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# COLMAP workspace files (large generated files)
+modelviewer/colmap_workspace/database.db
+modelviewer/colmap_workspace/database.db-shm
+modelviewer/colmap_workspace/database.db-wal
+modelviewer/colmap_workspace/dense/
+modelviewer/colmap_workspace/sparse/
+
+# VGGT SLAM output
+modelviewer/vggt_output/
