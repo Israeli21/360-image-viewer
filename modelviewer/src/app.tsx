@@ -10,6 +10,7 @@ import { SceneGraphViewer } from "@/components/SceneGraphViewer"
 import { ChatInterface, type ViewerCommand } from "@/components/ChatInterface"
 import { StreetViewerDemo } from "@/src/StreetViewerDemo"
 import { PointCloudDemo } from "@/components/PointCloudDemo"
+import { PointCloudGLBViewer } from "@/components/PointCloudGLBViewer"
 import { ViewerProvider } from "@/src/contexts/ViewerContext"
 import type { GLBViewerControls, SceneGraphViewerControls } from "@/src/contexts/ViewerContext"
 import { FolderOpen, Box, Map, Camera } from 'lucide-react'
@@ -257,8 +258,8 @@ function App() {
         <main className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1">
             {viewMode === 'point-cloud' ? (
-              // Point Cloud mode: Full-screen 3D camera reconstruction viewer
-              <PointCloudDemo />
+              // Point Cloud mode: Full-screen 3D point cloud viewer
+              <PointCloudGLBViewer />
             ) : viewMode === 'street-viewer' ? (
               // Street Viewer mode: Full-screen panoramic viewer
               <StreetViewerDemo />

@@ -22,7 +22,7 @@ export const PointCloudDemo: React.FC = () => {
       {/* Main viewer */}
       <div className="flex-1 relative">
         <PointCloudViewer 
-          cameraDataPath="C:/Users/isrtr/OneDrive/Desktop/Programming/Street_Viewer/modelviewer/sfm_output/camera_poses.json"
+          cameraDataPath="camera_poses.json"
           onCameraSelect={handleCameraSelect}
         />
       </div>
