@@ -1,6 +1,0 @@
-@echo off
-echo Opening COLMAP GUI...
-"C:\Program Files\COLMAP\bin\colmap.exe" gui
-echo.
-echo COLMAP exited. Press any key to close...
-pause > nul
