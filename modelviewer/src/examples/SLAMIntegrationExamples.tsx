@@ -88,13 +88,13 @@ export const SLAMViewerMock: React.FC = () => {
     ];
 
     const imageNames = [
-      'IMG_2955.JPG',
-      'IMG_2958.JPG',
-      'IMG_2960.JPG',
-      'IMG_2956.JPG',
-      'IMG_2957.JPG',
-      'IMG_2959.JPG',
-      'IMG_2961.JPG'
+      'CAM_1.JPG',
+      'CAM_4.JPG',
+      'CAM_6.JPG',
+      'CAM_2.JPG',
+      'CAM_3.JPG',
+      'CAM_5.JPG',
+      'CAM_7.JPG'
     ];
 
     // Generate mock SLAM data
