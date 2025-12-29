@@ -47,7 +47,7 @@ export const StreetViewerDemo: React.FC = () => {
           { lon: -171.4, lat: 8.8 },    // Camera 1
           { lon: -174.8, lat: 17.2 },   // Camera 2
           { lon: -154.4, lat: 5.6 },    // Camera 3
-          { lon: -171.4, lat: 7.2 },   // Camera 4
+          { lon: -171.4, lat: 7.2 },    // Camera 4
           { lon: -204.8, lat: 12.8 },   // Camera 5
           { lon: -205.4, lat: 15.8 },   // Camera 6
           { lon: -185.4, lat: 15.2 }    // Camera 7
