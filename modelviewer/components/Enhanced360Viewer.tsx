@@ -460,9 +460,9 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
     }
   }, [currentImageIndex, viewpoints]);
 
-  // Navigation - sequential path navigation (reversed: left goes forward, right goes backward)
+  // Navigation - sequential path navigation (arrows reversed)
   const handlePrev = () => {
-    const newIndex = (currentImageIndex + 1) % images360.length;
+    const newIndex = (currentImageIndex - 1 + images360.length) % images360.length;
     setCurrentImageIndex(newIndex);
     // Use custom angle from viewpoint
     const newViewpoint = viewpoints[newIndex];
@@ -473,7 +473,7 @@ export const Enhanced360Viewer: React.FC<Enhanced360ViewerProps> = ({
   };
 
   const handleNext = () => {
-    const newIndex = (currentImageIndex - 1 + images360.length) % images360.length;
+    const newIndex = (currentImageIndex + 1) % images360.length;
     setCurrentImageIndex(newIndex);
     // Use custom angle from viewpoint
     const newViewpoint = viewpoints[newIndex];

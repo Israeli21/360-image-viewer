@@ -39,18 +39,20 @@ export const StreetViewerDemo: React.FC = () => {
           'CAM_4.JPG',  // Position 4: (90, 30)
           'CAM_5.JPG',  // Position 5: (0, 80)
           'CAM_6.JPG',  // Position 6: (65, 25)
-          'CAM_7.JPG'   // Position 7: (0, 100) - left-bottom
+          'CAM_7.JPG',  // Position 7: (0, 100) - left-bottom
+          'CAM_8.JPG'   // Position 8: New position
         ];
 
-        // Custom camera angles for each position to face the building
+        // Custom camera angles for each position to face away from the building (180° turned)
         const cameraAngles = [
-          { lon: -171.4, lat: 8.8 },    // Camera 1
-          { lon: -174.8, lat: 17.2 },   // Camera 2
-          { lon: -154.4, lat: 5.6 },    // Camera 3
-          { lon: -171.4, lat: 7.2 },    // Camera 4
-          { lon: -204.8, lat: 12.8 },   // Camera 5
-          { lon: -205.4, lat: 15.8 },   // Camera 6
-          { lon: -185.4, lat: 15.2 }    // Camera 7
+          { lon: 8.6, lat: 8.8 },      // Camera 1 (was -171.4)
+          { lon: 5.2, lat: 17.2 },     // Camera 2 (was -174.8)
+          { lon: 25.6, lat: 5.6 },     // Camera 3 (was -154.4)
+          { lon: 8.6, lat: 7.2 },      // Camera 4 (was -171.4)
+          { lon: -24.8, lat: 12.8 },   // Camera 5 (was -204.8)
+          { lon: -25.4, lat: 15.8 },   // Camera 6 (was -205.4)
+          { lon: -5.4, lat: 15.2 },    // Camera 7 (was -185.4)
+          { lon: 0, lat: 10.0 }        // Camera 8 (was -180.0)
         ];
 
         // Convert to absolute paths
