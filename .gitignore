@@ -37,3 +37,13 @@ modelviewer/colmap_workspace/sparse/
 
 # VGGT SLAM output
 modelviewer/vggt_output/
+
+# Large point cloud files (generated)
+*.glb
+*.ply
+modelviewer/src/public/point_cloud.*
+modelviewer/src/public/camera_poses.json
+
+# Input images for reconstruction
+modelviewer/images_for_vggt_slam.zip
+small_house.mp4
